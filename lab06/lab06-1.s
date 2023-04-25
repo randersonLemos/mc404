@@ -57,15 +57,6 @@ multiplicavetorfim:
     addi sp, sp, 16
     ret
 
-SomaVetor:
-  addi sp, sp -4
-  sw   ra, sp, 0
-  
-    
-somavetorfim:
-  lw   ra, sp, 0 
-  addi sp, sp, 4
-  ret
 
 main:
   addi a0, zero, 2
