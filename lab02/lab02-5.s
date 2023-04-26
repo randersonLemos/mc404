@@ -14,7 +14,7 @@ loop:
 	beq s1, zero, end
 
 	bge s0, s1, prints0
-	j prints1
+  	j prints1
 	
 prints0:
 	add a0, zero, s0

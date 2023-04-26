@@ -18,8 +18,10 @@ main:
   lui  s2, %hi(vetor_ponto)
   addi s2, s2, %lo(vetor_ponto)   
 
+  addi s5, zero, 0
+  addi s6, zero, 0
 loop:
-  beq s0, zero, end
+  beq s0, zero, print
     addi s1, s1, 4
     add  s3, s1, s2
     lw t1, s3, 0 # carrega x[i]
@@ -28,6 +30,20 @@ loop:
     add  s3, s1, s2
     lw t2, s3, 0 # carrega y[i]
     
+    blt s5, t1, atualiza
+    blt s6, t2, atualiza
+    j atualiza_fim
+
+
+atualiza:
+    addi s5, t1, 0
+    addi s6, t2, 0
+
+atualiza_fim:
+    addi s0, s0, -1
+    j loop
+
+print:
     addi t0, zero, 2
 
     addi a0, zero, 120
@@ -36,7 +52,7 @@ loop:
     addi a0, zero, 61
     ecall
     
-    addi  a0, t1, 48
+    addi  a0, s5, 48
     ecall
 
     addi a0, zero, 44
@@ -48,17 +64,11 @@ loop:
     addi a0, zero, 61
     ecall
 
-    addi  a0, t2, 48
+    addi  a0, s6, 48
     ecall
 
     addi a0, zero, 32
     ecall
-
-
-
-    addi s0, s0, -1
-
-    j loop
 end:
   ret
 # copia o primeiro ponto para os registradores de ponto superior direito

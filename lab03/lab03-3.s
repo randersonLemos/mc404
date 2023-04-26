@@ -7,10 +7,10 @@ loop:
   ecall
   # Se for zero, vai para o fim
   beq a0, zero, end
-  and s3, a0, s0
-  beq s3, zero, even
-    add s1, s1, a0 # Soma impares
-    j loop
+    and s3, a0, s0
+    beq s3, zero, even
+      add s1, s1, a0 # Soma impares
+      j loop
 even:
     add s2, s2, a0  # Soma pares
     j loop

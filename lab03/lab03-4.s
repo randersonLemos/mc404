@@ -13,4 +13,7 @@ main:
   add  a0, zero, s3
   addi t0, zero, 1
   ecall
+  # Decodifica segredo
+  xor a0, s3, s1
+  ecall
   ret

@@ -2,16 +2,14 @@ main:
 	# le numero do teclado e salva em a1
 	addi t0, zero, 4
 	ecall    
-	add a1, zero, a0
+	addi a1, a0, -10
 
-	# subtrai 10 do numero lido 
-	addi t1, zero, 10
+  srli a2, a1, 31
 	
-	blt a1, t1, printnegativo	
-	  j printpositivo
+	beq a2, zero, printpositivo
+	  j printnegativo
 
 printpositivo:
-	sub  a1, a1, t1
 	# imprime a1
 	add  a0, zero, a1
 	addi t0, zero, 1
@@ -19,14 +17,15 @@ printpositivo:
 	j end
 
 printnegativo:
-	# imprime sinal de menos
 	addi a0, zero, 45
 	addi t0, zero, 2
 	ecall
 	# imprime a1
-	add a0, zero, a1
-	addi t0, zero, 1
-	ecall
+  addi t0, zero,  1
+  addi t1, zero, -1
+  addi a1, a1, -1
+  xor  a0, a1, t1
+  ecall
 	j end
 
 end:
