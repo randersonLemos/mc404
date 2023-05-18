@@ -5,9 +5,13 @@
 .text
 main:
   call LeNumero
-  li a0, 10
+ 
+  mv a1, a0
+  li a0, 1
   ecall          # Encerra o programa
-  ret
+  
+  li a0, 10
+  ecall
 
 LeNumero:
   addi sp, sp, -40 # Reservando 32 bytes pra string
@@ -17,22 +21,23 @@ LeNumero:
 
   mv a0, s0
   call LeString
-
   mv t0, s0
+  li a0, 0
+  li t2, 10
+
 LoopLeNumero:
   lbu t1, 0(t0)
   beq t1, zero, FimLeNumero
-    li a0, 11
-    mv a1, t1
-    ecall
+    addi t1, t1, -48
+    mul a0, a0, t2
+    add  a0, a0, t1
     addi t0, t0, 1 
     j LoopLeNumero 
-
     
 FimLeNumero:
   lw ra, 32(sp)
   lw s0, 36(sp)
-  addi sp, sp, 440
+  addi sp, sp, 40
   ret
 
 LeString:
