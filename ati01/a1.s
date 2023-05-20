@@ -1,6 +1,11 @@
 .data
   n1: .word 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1  
   n2: .word 31, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 31
+  n3: .word 31, 1, 1, 1, 1, 31, 31, 1, 1, 1, 1, 31
+  n4: .word 31, 17, 17, 17, 17, 31, 31, 17, 17, 17, 17, 31
+  n5: .word 31, 17, 17, 17, 17, 31, 31, 1, 1, 1, 1, 31
+  n6: .word 31, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+
 .text
 main:
   la a0, n1 # number 
@@ -10,6 +15,30 @@ main:
   call pausa
 
   la a0, n2
+  call printNumberShift
+
+  li a0, 100
+  call pausa
+
+  la a0, n3
+  call printNumberShift
+
+  li a0, 100
+  call pausa
+  
+  la a0, n4
+  call printNumberShift
+
+  li a0, 100
+  call pausa
+  
+  la a0, n5
+  call printNumberShift
+
+  li a0, 100
+  call pausa
+  
+  la a0, n6
   call printNumberShift
 
   li a0, 10
