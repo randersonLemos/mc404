@@ -34,7 +34,6 @@ class Registers:
     dic['t5']   = 'ok'
     dic['t6']   = 'ok'
     
-
     @classmethod
     def get(cls, re):
         if re in cls.dic:
@@ -48,7 +47,6 @@ class Registers:
         return None
 
 
-
 class None2:
     def __call__(self, *args, **kwargs):
         return None
@@ -57,7 +55,6 @@ class None2:
 class Addi:
     def __init__(self):
         self.rd = None; self.rs = None; self.im = None
-
 
     def __call__(self, rd, rs, im):
         if ( rd[-1] != ',') or ( rd[-1] != ',' ):
@@ -72,20 +69,16 @@ class Addi:
         rs = Registers.get(rs)
         im = Registers.get_num(im) 
         
-        if rd:
-            self.rd = _rd
+        if rd : self.rd = _rd
             
-        if rs:
-            self.rs = _rs
+        if rs : self.rs = _rs
 
-        if im:
-            self.im = _im
+        if im : self.im = _im
 
         if not (rd and rs and im):
             return None
 
         return (rd, rs, im)
-
 
     def __repr__(self):
         return 'addi {}, {}, {}'.format(self.rd, self.rs, self.im)
@@ -105,20 +98,20 @@ class Mnenomics:
 if __name__ == '__main__':
     while True:
         print("Informe instrução Assembly ou digite 'exit' para finalizar o programa.")
+
         cmd = input()
 
         if cmd == 'exit' : exit()
 
         cmd = cmd.strip().split(' ')
 
-        print(cmd)
-
+        print('cmd: {}'.format( cmd ))
+ 
         if len( cmd ) == 4:
             a, b, c, d = cmd
 
             mnm = Mnenomics.get(a)
             pso = mnm( b, c, d )
-            print('@@@@@@@@@')
             print( mnm )
             print( pso )
 
