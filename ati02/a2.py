@@ -38,13 +38,14 @@ class Registers:
     def get(cls, re):
         if re in cls.dic:
             return cls.dic[re]
+
         return None
 
     @classmethod
     def get_num(cls, re):
         if re.isnumeric():
-            return '{:0>12}'.format(bin(int(re))[2:])
-            #return int(re)
+            if ( int(re) >= -2048 ) and ( int(re) < 2048 ):
+                return '{:0>12}'.format(bin(int(re))[2:])
         return None
 
 
@@ -53,12 +54,60 @@ class None2:
         return None
 
 
+class FormatRType:
+    def __init__(self):
+        self.rs2    = None
+        self.rs1    = None
+        self.funct3 = None
+        self.rd     = None
+        self.opcode = None
+
+        self._rd  = None
+        self._rs1 = None
+        self._rs2 = None
+
+
+    def __call__(self, _rd, _rs1, _rs2):
+        rd  = Registers.get(_rd)
+        rs1 = Registers.get(_rs1)
+        rs2 = Registers.get(_rs2) 
+
+        if rd:
+            self.rd  = rd
+            self._rd = _rd
+            
+        if rs1:
+            self.rs1  = rs1
+            self._rs1 = _rs1
+
+        if rs2:
+            self.rs2  = rs2
+            self._rs2 = _rs2
+
+        if not (rd and rs1 and rs2):
+            return False
+
+        return True
+
+
+    def bin(self):
+        return  '0000000' + self.rs2 + self.rs1 + self.funct3 + self.rd + self.opcode
+
+
+    def hex(self):
+        return '0x{:0>8}'.format( hex( int( '0b'+self.bin(), 2 ) )[2:] ).upper()
+
+
+    def __repr__(self):
+        return self.hex()
+
+
 class FormatIType:
     def __init__(self):
-        self.imm = None
-        self.rs1 = None
+        self.imm    = None
+        self.rs1    = None
         self.funct3 = None
-        self.rd = None
+        self.rd     = None
         self.opcode = None
 
         self._rs1 = None
@@ -67,11 +116,6 @@ class FormatIType:
 
 
     def __call__(self, _rd, _rs1, _imm):
-        if ( _rd[-1] != ',') or ( _rs1[-1] != ',' ):
-            return False
-
-        _rd = _rd[:-1]; _rs1 = _rs1[:-1]
-
         rd  = Registers.get(_rd)
         rs1 = Registers.get(_rs1)
         imm = Registers.get_num(_imm) 
@@ -100,11 +144,20 @@ class FormatIType:
 
 
     def hex(self):
-        return '0x{:0>8}'.format( hex( int( '0b'+self.bin(), 2 ) )[2:] )
+        return '0x{:0>8}'.format( hex( int( '0b'+self.bin(), 2 ) )[2:] ).upper()
 
 
     def __repr__(self):
         return self.hex()
+
+
+class FormatLoadType(FormatRType):
+    def __init__(FormatRType):
+        super().__init__()
+
+    def __call__(self, rd, rs):
+        import IPython; IPython.embed() 
+        return super().__call__()
 
 
 class Addi(FormatIType):
@@ -122,11 +175,76 @@ class Addi(FormatIType):
         return stg
 
 
+class Slli(FormatIType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '001'
+        self.opcode = '0010011'
+
+
+    def info(self):
+        stg = ''
+        stg += 'slli {}, {}, {}\n'.format(self._rd, self._rs1, self._imm)
+        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.imm, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+class Xor(FormatRType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '100'
+        self.opcode = '0110011'
+
+
+    def info(self):
+        stg = ''
+        stg += 'xor {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
+        stg += '0000000{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+class Mul(FormatRType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '000'
+        self.opcode = '0110011'
+
+
+    def bin(self):
+        return  '0000001' + self.rs2 + self.rs1 + self.funct3 + self.rd + self.opcode
+
+
+    def info(self):
+        stg = ''
+        stg += 'mul {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
+        stg += '0000000{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+class Lw(FormatLoadType):
+    def __init__(self):
+        self.funct3 = '010'
+        self.opcode = '0000011'
+
+
+    def info(self):
+        stg = ''
+        stg += 'lw {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
+        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
 
 
 class Mnenomics:
     dic = {}
     dic['addi'] = Addi
+    dic['slli'] = Slli
+    dic['xor']  = Xor
+    dic['mul']  = Mul
+    dic['lw']   = Lw
+
 
     @classmethod
     def get(cls, pi):
@@ -137,8 +255,10 @@ class Mnenomics:
 
 if __name__ == '__main__':
     INPUT = [
-      'addi zero, zero, 0'
-    , 'addi t0, zero, 4'
+      'addi t0, zero, 4'
+    , 'slli t1, t0, 10'
+    , 'xor  t2, t0, t0'
+    , 'mul s4 s3 t0'
     , 'exit'
     ]
 
@@ -157,15 +277,21 @@ if __name__ == '__main__':
             print('+++')
             exit()
 
-        cmd = cmd.strip().split(' ')
+        cmd = cmd.strip().replace(',', '').split(' ')
+        cmd = [el  for el in cmd if el]
 
-        if len( cmd ) == 4:
+        if len( cmd ) == 3:
+            a, b, c = cmd
+
+            mnm = Mnenomics.get(a)
+
+        elif len( cmd ) == 4:
             a, b, c, d = cmd
 
             mnm = Mnenomics.get(a)
             print('---')
             if mnm( b, c, d ):
-                print(mnm) 
+                #print(mnm) 
                 print(mnm.info()) 
             else:
                 print('Instrução fora da especificação.')
