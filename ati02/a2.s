@@ -12,9 +12,14 @@ xor zero, zero, zero
 
 mul s4, s3, t0
 
+lw a0, 12(s0)
+
+sw a2, 5(t0)
+
 call func
 
 li a0, 10
 ecall
 
 func:
+    ret

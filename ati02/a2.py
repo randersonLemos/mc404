@@ -1,3 +1,7 @@
+### 103897
+### Randerson Araujo de Lemos
+
+
 class Registers:
     dic = {}
     dic['zero'] = '{:0>5}'.format(bin(0)[2:])
@@ -33,19 +37,50 @@ class Registers:
     dic['t4']   = '{:0>5}'.format(bin(29)[2:])
     dic['t5']   = '{:0>5}'.format(bin(30)[2:])
     dic['t6']   = '{:0>5}'.format(bin(31)[2:])
-    
+
+
     @classmethod
     def get(cls, re):
         if re in cls.dic:
             return cls.dic[re]
-
         return None
 
+
     @classmethod
-    def get_num(cls, re):
-        if re.isnumeric():
-            if ( int(re) >= -2048 ) and ( int(re) < 2048 ):
-                return '{:0>12}'.format(bin(int(re))[2:])
+    def get_num(cls, re, qty=12):
+        if re.isnumeric() or re.lstrip('-').isnumeric():
+            if ( int(re) >= 0 ) and ( int(re) < 2048 ):
+                if qty == 12:
+                    return '{:0>12}'.format(bin(int(re))[2:])
+                else:
+                    return '{:0>13}'.format(bin(int(re))[2:])
+
+            if ( int(re) >= -2048 ) and ( int(re) < 0 ):
+                num = -1*int( re )
+                if qty == 12:
+                    numBin =  '{:0>12}'.format(bin(int(re))[3:])
+                else:
+                    numBin =  '{:0>13}'.format(bin(int(re))[3:])
+                numBin = numBin[::-1]
+                lst = []
+                change = False
+                for en, el in enumerate( numBin ):
+                    if not change:
+                        lst.append(el)
+                        if el == '1':
+                            change = True
+                    else:
+                        lst.append( str( int( not( el == 1 ) ) ) )
+                numBin = ''.join(lst)[::-1]
+                return numBin
+        return None
+
+
+    @classmethod
+    def get_register(cls, binn):
+        for key in cls.dic:
+            if cls.dic[key] == binn:
+                return key
         return None
 
 
@@ -68,7 +103,7 @@ class FormatRType:
 
 
     def __call__(self, _rd, _rs1, _rs2):
-        rd  = Registers.get(_rd)
+        rd  = Registers.get(_rd )
         rs1 = Registers.get(_rs1)
         rs2 = Registers.get(_rs2) 
 
@@ -90,8 +125,8 @@ class FormatRType:
         return True
 
 
-    def bin(self):
-        return  '0000000' + self.rs2 + self.rs1 + self.funct3 + self.rd + self.opcode
+    def bin(self, lefts='0000000'):
+        return  lefts + self.rs2 + self.rs1 + self.funct3 + self.rd + self.opcode
 
 
     def hex(self):
@@ -116,7 +151,7 @@ class FormatIType:
 
 
     def __call__(self, _rd, _rs1, _imm):
-        rd  = Registers.get(_rd)
+        rd  = Registers.get(_rd )
         rs1 = Registers.get(_rs1)
         imm = Registers.get_num(_imm) 
         
@@ -151,13 +186,42 @@ class FormatIType:
         return self.hex()
 
 
-class FormatLoadType(FormatRType):
-    def __init__(FormatRType):
+class FormatLoadType(FormatIType):
+    def __init__(self):
         super().__init__()
 
     def __call__(self, rd, rs):
-        import IPython; IPython.embed() 
-        return super().__call__()
+        lst = [ el for el in rs.replace('(', ' ').replace(')', ' ').split(' ') if el ]
+        if len(lst) == 2:
+            imm, rs1 = lst
+            return super().__call__( rd, rs1, imm )
+        return False
+
+
+class FormatSaveType(FormatRType):
+    def __init__(self):
+        super().__init__()
+        self.lefts = '0000000'
+
+
+    def __call__(self, rs, rd):
+        rs2 = rs
+        lst = [ el for el in rd.replace('(', ' ').replace(')', ' ').split(' ') if el ]
+        if len(lst) == 2:
+            imm , rs1 = lst
+            immBin = Registers.get_num( imm )
+            lefts = immBin[:7]
+            rdBin = immBin[7:]
+
+            self.lefts = lefts
+            rd = Registers.get_register( rdBin )
+
+            return super().__call__( rd, rs1, rs2 )
+        return False
+
+
+    def bin(self):
+        return super().bin(self.lefts)
 
 
 class Addi(FormatIType):
@@ -223,18 +287,111 @@ class Mul(FormatRType):
         stg += self.hex() 
         return stg
 
+
 class Lw(FormatLoadType):
     def __init__(self):
+        super().__init__()
         self.funct3 = '010'
         self.opcode = '0000011'
 
 
     def info(self):
         stg = ''
-        stg += 'lw {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
-        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += 'lw {}, {}, {}\n'.format(self._rd, self._rs1, self._imm)
+        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.imm, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
         stg += self.hex() 
         return stg
+
+
+class Sw(FormatSaveType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '010'
+        self.opcode = '0100011'
+
+
+    def info(self):
+        stg = ''
+        stg += 'sw {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
+        stg += '0000000{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+class Call(FormatIType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '000'
+        self.opcode = '1100111'
+
+
+    def __call__(self, label ):
+        if not label.isnumeric():
+            return False
+        offset = int(label) - 1000
+        return super().__call__('ra', 't1',  str(offset))
+
+
+    def info(self):
+        stg = ''
+        stg += 'call {}, {}, {}\n'.format(self._rd, self._rs1, self._imm)
+        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.imm, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+class Ret(FormatIType):
+    def __init__(self):
+        super().__init__()
+        self.funct3 = '000'
+        self.opcode = '1100111'
+
+
+    def __call__( self ):
+        return super().__call__('zero', 'ra',  '0')
+
+
+    def info(self):
+        stg = ''
+        stg += 'ret {}, {}, {}\n'.format(self._rd, self._rs1, self._imm)
+        stg += '{}|{}|{}|{}|{} ({})\n'.format(self.imm, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+
+class Beq(FormatRType):
+    def __init__(self):
+        super().__init__()
+        self.lefts = '0000000'
+        self.funct3 = '000'
+        self.opcode = '1100011'
+
+
+    def __call__(self, rs1, rs2, imm):
+        immBin = Registers.get_num( imm, 13 )[:-1]
+        lefts = immBin[0] + immBin[2:8]
+        rdBin = immBin[8:12] + immBin[1]
+        rd = Registers.get_register( rdBin )
+
+        self.lefts = lefts
+        rd = Registers.get_register( rdBin )
+
+        return super().__call__( rd, rs1, rs2 )
+
+
+    def info(self):
+        stg = ''
+        stg += 'beq {}, {}, {}\n'.format(self._rd, self._rs1, self._rs2)
+        stg += '0000000{}|{}|{}|{}|{} ({})\n'.format(self.rs2, self.rs1, self.funct3, self.rd, self.opcode, len( self.bin() ))
+        stg += self.hex() 
+        return stg
+
+
+
+
+    def bin(self):
+        return super().bin(self.lefts)
 
 
 class Mnenomics:
@@ -244,6 +401,10 @@ class Mnenomics:
     dic['xor']  = Xor
     dic['mul']  = Mul
     dic['lw']   = Lw
+    dic['sw']   = Sw
+    dic['call'] = Call
+    dic['ret']  = Ret
+    dic['beq']  = Beq
 
 
     @classmethod
@@ -254,53 +415,75 @@ class Mnenomics:
 
 
 if __name__ == '__main__':
-    INPUT = [
-      'addi t0, zero, 4'
-    , 'slli t1, t0, 10'
-    , 'xor  t2, t0, t0'
-    , 'mul s4 s3 t0'
-    , 'exit'
-    ]
+    # TESTED INSTRUCTIONS 
+    #INPUT = [
+    #  'addi t0, zero, 4'
+    #, 'slli t1, t0, 10'
+    #, 'xor  t2, t0, t0'
+    #, 'mul  s4 s3 t0'
+    #, 'lw a0, 12(s0)'
+    #, 'sw a2,  5(t0)'
+    #, 'call 1016'
+    #, 'call 1500'
+    #, 'ret'
+    #, 'beq s0, s1, -8'
+    #, 'exit'
+    #]
 
-    ITE_INPUT = iter(INPUT)
+    #ITE_INPUT = iter(INPUT)
 
     while True:
         print("Informe instrução Assembly ou digite 'exit' para finalizar o programa.")
 
-        #cmd = input()
-        cmd = next( ITE_INPUT )
-        
-        print('+++')
-        print( 'cmd:', cmd )
+        cmd = input()
+        #cmd = next( ITE_INPUT )
         
         if cmd == 'exit':
-            print('+++')
+            print('Bye bye')
             exit()
 
         cmd = cmd.strip().replace(',', '').split(' ')
         cmd = [el  for el in cmd if el]
 
-        if len( cmd ) == 3:
-            a, b, c = cmd
-
+        if len( cmd ) == 1:
+            a = cmd[0]
             mnm = Mnenomics.get(a)
+            if mnm():
+                print(mnm)
+            else:
+                print('Instrução fora da especificação.')
+
+        if len( cmd ) == 2:
+            a, b = cmd
+            mnm = Mnenomics.get(a)
+            if mnm( b ):
+                print(mnm)
+            else:
+                print('Instrução fora da especificação.')
+
+        elif len( cmd ) == 3:
+            a, b, c = cmd
+            mnm = Mnenomics.get(a)
+            if mnm( b, c ):
+                print(mnm)
+            else:
+                print('Instrução fora da especificação.')
+
 
         elif len( cmd ) == 4:
             a, b, c, d = cmd
 
             mnm = Mnenomics.get(a)
-            print('---')
             if mnm( b, c, d ):
-                #print(mnm) 
-                print(mnm.info()) 
+                print(mnm) 
             else:
                 print('Instrução fora da especificação.')
-            print('---')
 
         else:
             print('Instrução fora da especificação.')
 
-        print('+++')
+
+        print('---')
 
 
 
